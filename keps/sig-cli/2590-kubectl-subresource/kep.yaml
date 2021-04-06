@@ -1,0 +1,19 @@
+title: Kubectl Subresource Support
+kep-number: 2590
+authors:
+  - "@nikhita"
+  - "@ykakarap"
+owning-sig: sig-cli
+participating-sigs:
+  - sig-arch
+reviewers:
+  - "@soltysh"
+approvers:
+  - "@soltysh"
+creation-date: 2021-04-06
+last-updated: 2021-04-06
+status: provisional
+see-also:
+replaces:
+superseded-by:
+  - n/a
