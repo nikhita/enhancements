@@ -56,18 +56,23 @@ Items marked with (R) are required *prior to targeting to a milestone / release*
 
 ## Summary
 
-This KEP proposes supporting a new flag `--subresource` to get, apply, patch, edit and replace kubectl commands to fetch and update `status` and `scale` subresources.
+This KEP proposes supporting a new flag `--subresource` to get, apply, patch, edit and replace kubectl
+commands to fetch and update `status` and `scale` subresources.
 
 ## Motivation
 
-Today while testing or debugging, fetching subresources (like status) of API objects via kubectl involves using `kubectl --raw`. Patching subresources using kubectl is not possible at all and requires using curl directly. This method is very cumbersome and not user-friendly.
+Today while testing or debugging, fetching subresources (like status) of API objects via kubectl
+involves using `kubectl --raw`. Patching subresources using kubectl is not possible at all and 
+requires using curl directly. This method is very cumbersome and not user-friendly.
 
-This KEP adds subresources as a first class option in kubectl to allow users to work with the API in a generic fashion.
+This KEP adds subresources as a first class option in kubectl to allow users to work with the API
+in a generic fashion.
 
 ### Goals
 
 - Add a new flag `--subresource=[subresource-name]` to get, apply, patch, edit
-  and replace kubectl commands to allow fetching and updating `status` and `scale` subresources for all resources (built-in and CRs) that support these subresources.
+  and replace kubectl commands to allow fetching and updating `status` and `scale` subresources for all resources
+  (built-in and CRs) that support these subresources.
 - Display pretty printed table columns for the status (uses same columns as the main resource) and scale subresources.
 
 
@@ -80,17 +85,24 @@ This KEP adds subresources as a first class option in kubectl to allow users to 
 
 ## Proposal
 
-kubectl commands like get, apply, patch, edit and replace will now contain a new flag `--subresource=[subresource-name]` which will allow fetching and updating `status` and `scale` subresources for all API resources.
+kubectl commands like get, apply, patch, edit and replace will now contain a
+new flag `--subresource=[subresource-name]` which will allow fetching and updating
+`status` and `scale` subresources for all API resources.
 
-When the `--subresource=status` flag is used against built-in API types, the `.status` field of the resource is _not_ updated since the built-in controllers run against the resource and reconcile the `.status` part. This also holds true for custom resources if a custom controller reconciles the `.status` part of the CR. It ensures that `.status` of built-in API types will never store arbitrary data.
+When the `--subresource=status` flag is used against built-in API types, 
+the `.status` field of the resource is _not_ updated since the built-in controllers run against
+the resource and reconcile the `.status` part. This also holds true for custom resources if a 
+custom controller reconciles the `.status` part of the CR. It ensures that `.status` of 
+built-in API types will never store arbitrary data.
 
-If `--subresource` flag is used for a resource that doesn't support the subresource, a `NotFound` error will be returned.
+If `--subresource` flag is used for a resource that doesn't support the subresource, 
+a `NotFound` error will be returned.
 
 ### Examples
 
 #### get
 
-```shell=
+```shell
 # for built-in types
 $ kubectl get deployment nginx-deployment --subresource=status
 NAME               READY   UP-TO-DATE   AVAILABLE   AGE
@@ -112,7 +124,7 @@ cron   3                 0
 
 Invalid subresources:
 
-```shell=
+```shell
 $ kubectl get pod nginx-deployment-66b6c48dd5-dv6gl --subresource=logs
 error: --subresource must be one of [status scale], not "logs"
 
@@ -122,7 +134,7 @@ Error from server (NotFound): the server could not find the requested resource
 
 #### patch
 
-```shell=
+```shell
 # For built-in types
 # update spec.replicas through scale subresource
 $ kubectl patch deployment nginx-deployment --subresource='scale' --type='merge' -p '{"spec":{"replicas":2}}'
@@ -145,7 +157,7 @@ cron   3                 2
 
 #### apply
 
-```shell=
+```shell
 # cron-with-status.yaml has .status.replicas=3
 $ kubectl apply -f cron-with-status.yaml --subresource=status
 
@@ -164,7 +176,8 @@ $ kubectl get crontabs cron -o jsonpath='{.status.replicas}'
 
 ### Notes
 
-While this flag now allows updating `.status` for custom resources when a custom controller is not running against them, this is _not_ problematic because:
+While this flag now allows updating `.status` for custom resources when a custom controller 
+is not running against them, this is _not_ problematic because:
 
 - This feature is gated by the `--subresource` flag, and does not change the default behavior for kubectl.
 - Updating `.status` is also possible today by using `curl` directly.
@@ -187,9 +200,11 @@ If the subresource does not exist for an API resource, a `NotFound` error is ret
 
 ### Table printer
 
-To support table view for subresources using kubectl get, table convertor support is added to the the scale and status subresoruces for built-in and CRD types.
+To support table view for subresources using kubectl get, table convertor support is added to
+the scale and status subresoruces for built-in and CRD types.
 
-For built-in types, `StatusStore` and `ScaleStore` are updated to implement the `TableConvertor` interface. `StatusStore` uses the same columns as the main resource object.
+For built-in types, `StatusStore` and `ScaleStore` are updated to implement the `TableConvertor` interface.
+`StatusStore` uses the same columns as the main resource object.
 
 The following column definitions for the `Scale` object are added to [printers.go] to support the scale subresource:
 - `Available Replicas` uses the json path `.status.replicas` of autoscalingv1.Scale object
@@ -371,7 +386,7 @@ N/A
 
 ## Implementation History
 
-2021-03-01: Initial [POC PR] created
+2021-03-01: Initial [POC PR] created  
 2021-04-xx: KEP proposed
 
 [POC PR]: https://github.com/kubernetes/kubernetes/pull/99556
