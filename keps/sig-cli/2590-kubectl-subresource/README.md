@@ -4,30 +4,31 @@
 - [Release Signoff Checklist](#release-signoff-checklist)
 - [Summary](#summary)
 - [Motivation](#motivation)
-    - [Goals](#goals)
-    - [Non-Goals](#non-goals)
+  - [Goals](#goals)
+  - [Non-Goals](#non-goals)
 - [Proposal](#proposal)
-    - [User Stories (Optional)](#user-stories-optional)
-        - [Story 1](#story-1)
-        - [Story 2](#story-2)
-    - [Notes/Constraints/Caveats (Optional)](#notesconstraintscaveats-optional)
-    - [Risks and Mitigations](#risks-and-mitigations)
+- [Notes](#notes)
+- [Examples](#examples)
+    - [get](#get)
+    - [patch](#patch)
 - [Design Details](#design-details)
-    - [Test Plan](#test-plan)
-    - [Graduation Criteria](#graduation-criteria)
-    - [Upgrade / Downgrade Strategy](#upgrade--downgrade-strategy)
-    - [Version Skew Strategy](#version-skew-strategy)
+  - [Subresource support](#subresource-support)
+  - [Table printer](#table-printer)
+  - [Test Plan](#test-plan)
+  - [Graduation Criteria](#graduation-criteria)
+    - [Alpha -&gt; Beta Graduation](#alpha---beta-graduation)
+    - [Beta -&gt; GA Graduation](#beta---ga-graduation)
+  - [Upgrade / Downgrade Strategy](#upgrade--downgrade-strategy)
+  - [Version Skew Strategy](#version-skew-strategy)
 - [Production Readiness Review Questionnaire](#production-readiness-review-questionnaire)
-    - [Feature Enablement and Rollback](#feature-enablement-and-rollback)
-    - [Rollout, Upgrade and Rollback Planning](#rollout-upgrade-and-rollback-planning)
-    - [Monitoring Requirements](#monitoring-requirements)
-    - [Dependencies](#dependencies)
-    - [Scalability](#scalability)
-    - [Troubleshooting](#troubleshooting)
+  - [Feature Enablement and Rollback](#feature-enablement-and-rollback)
+  - [Rollout, Upgrade and Rollback Planning](#rollout-upgrade-and-rollback-planning)
+  - [Monitoring Requirements](#monitoring-requirements)
+  - [Dependencies](#dependencies)
+  - [Scalability](#scalability)
+  - [Troubleshooting](#troubleshooting)
 - [Implementation History](#implementation-history)
-- [Drawbacks](#drawbacks)
 - [Alternatives](#alternatives)
-- [Infrastructure Needed (Optional)](#infrastructure-needed-optional)
 <!-- /toc -->
 
 ## Release Signoff Checklist
@@ -70,7 +71,7 @@ in a generic fashion.
 
 ### Goals
 
-- Add a new flag `--subresource=[subresource-name]` to get, apply, patch, edit
+- Add a new flag `--subresource=[subresource-name]` to get, patch, edit
   and replace kubectl commands to allow fetching and updating `status` and `scale` subresources for all resources
   (built-in and CRs) that support these subresources.
 - Display pretty printed table columns for the status (uses same columns as the main resource) and scale subresources.
@@ -79,31 +80,33 @@ in a generic fashion.
 ### Non-Goals
 
 - Support subresources other than `status` and `scale`.
-- Allow updates to the status subresource if a controller is running against the main
-  resource that reconciles `.status` part of the resource.
 - Allow specifying `additionalPrinterColumns` for CRDs for the status subresource.
 
 ## Proposal
 
-kubectl commands like get, apply, patch, edit and replace will now contain a
+kubectl commands like get, patch, edit and replace will now contain a
 new flag `--subresource=[subresource-name]` which will allow fetching and updating
 `status` and `scale` subresources for all API resources.
 
-When the `--subresource=status` flag is used against built-in API types, 
-the `.status` field of the resource is _not_ updated since the built-in controllers run against
-the resource and reconcile the `.status` part. This also holds true for custom resources if a 
-custom controller reconciles the `.status` part of the CR. It ensures that `.status` of 
-built-in API types will never store arbitrary data.
+Note that the api contract against the subresource is identical to a full resource. Therefore updating
+the status subresource to hold new value which could protentially be reconciled by a controller 
+to a different value is *expected behavior*.
 
 If `--subresource` flag is used for a resource that doesn't support the subresource, 
 a `NotFound` error will be returned.
 
-### Examples
+## Notes
+The alpha stage of this KEP does not change any behavior of the `apply` command. The support for `--subresource` in 
+this command will be added later.
+
+## Examples
 
 #### get
 
 ```shell
 # for built-in types
+# a `get` on a status subresource will return identical information
+# to that of a full resource
 $ kubectl get deployment nginx-deployment --subresource=status
 NAME               READY   UP-TO-DATE   AVAILABLE   AGE
 nginx-deployment   3/3     3            3           43s
@@ -113,6 +116,8 @@ NAME               DESIREDREPLICAS   AVAILABLEREPLICAS
 nginx-deployment   3                 3
 
 # for CRDS
+# a `get` on a status subresource will return identical information
+# to that of a full resource
 $ kubectl get crontab cron--subresource=status
 NAME   SPEC          REPLICAS   AGE
 cron   * * * * */5   3          4m52s
@@ -154,34 +159,6 @@ NAME   DESIREDREPLICAS   AVAILABLEREPLICAS
 cron   3                 2
 ```
 
-
-#### apply
-
-```shell
-# cron-with-status.yaml has .status.replicas=3
-$ kubectl apply -f cron-with-status.yaml --subresource=status
-
-# .status.replicas is updated to 3
-$ kubectl get crontabs cron -o jsonpath='{.status.replicas}'
-3
-
-# cron-with-status.yaml updated to include .status.replicas=2
-# but is not applied if --subresource flag is not used
-$ kubectl apply -f cron-with-status.yaml
-
-# .status.replicas is not updated
-$ kubectl get crontabs cron -o jsonpath='{.status.replicas}'
-3
-```
-
-### Notes
-
-While this flag now allows updating `.status` for custom resources when a custom controller 
-is not running against them, this is _not_ problematic because:
-
-- This feature is gated by the `--subresource` flag, and does not change the default behavior for kubectl.
-- Updating `.status` is also possible today by using `curl` directly.
-
 ## Design Details
 
 ### Subresource support
@@ -211,7 +188,7 @@ The following column definitions for the `Scale` object are added to [printers.g
 - `Desired Replicas` uses the json path of `.spec.replicas` of autoscalingv1.Scale object
 
 For custom resources:
-- the status subresoruce uses `additionalPrinterColumns` defined in the CRD.
+- the status subresoruce uses the same columns as defined for the full resource, i.e., `additionalPrinterColumns` defined in the CRD.
 - the scale subresource follows the same column definitions as the built-in types, and are defined in [helpers.go].
 
 [printers.go]: https://github.com/kubernetes/kubernetes/blob/master/pkg/printers/internalversion/printers.go#L88
@@ -221,7 +198,15 @@ For custom resources:
 
 - Unit tests, integration and e2e tests will be added.
 
-TODO: add in the POC and add more details here.
+### Graduation Criteria
+
+#### Alpha -> Beta Graduation
+
+- [ ] Collect user feedback on adding support of `--subresource` for `apply`
+
+#### Beta -> GA Graduation
+
+- [ ] User feedback gathered for atleast 1 cycle
 
 ### Upgrade / Downgrade Strategy
 
@@ -301,6 +286,9 @@ N/A
 ###### Were upgrade and rollback tested? Was the upgrade->downgrade->upgrade path tested?
 
 TODO: Describe manual testing that was done and the outcomes.
+This feature is completely with in the client. The upgrades and rollback of cluster will not be affected by this change.  
+The update and downgrade of the kubectl version will only limit the availability of the `--subresource` flag and will not
+change any API behavior.
 
 <!--
 Describe manual testing that was done and the outcomes.
@@ -387,7 +375,12 @@ N/A
 ## Implementation History
 
 2021-03-01: Initial [POC PR] created  
-2021-04-xx: KEP proposed
+2021-04-06: KEP proposed
 
 [POC PR]: https://github.com/kubernetes/kubernetes/pull/99556
+
+## Alternatives
+
+Alternatives would be to use curl commands directly to update subresources.
+
 
