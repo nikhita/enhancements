@@ -35,14 +35,14 @@
 
 Items marked with (R) are required *prior to targeting to a milestone / release*.
 
-- [ ] (R) Enhancement issue in release milestone, which links to KEP dir in [kubernetes/enhancements] (not the initial KEP PR)
-- [ ] (R) KEP approvers have approved the KEP status as `implementable`
-- [ ] (R) Design details are appropriately documented
-- [ ] (R) Test plan is in place, giving consideration to SIG Architecture and SIG Testing input (including test refactors)
-- [ ] (R) Graduation criteria is in place
+- [x] (R) Enhancement issue in release milestone, which links to KEP dir in [kubernetes/enhancements] (not the initial KEP PR)
+- [x] (R) KEP approvers have approved the KEP status as `implementable`
+- [x] (R) Design details are appropriately documented
+- [x] (R) Test plan is in place, giving consideration to SIG Architecture and SIG Testing input (including test refactors)
+- [x] (R) Graduation criteria is in place
 - [ ] (R) Production readiness review completed
 - [ ] (R) Production readiness review approved
-- [ ] "Implementation History" section is up-to-date for milestone
+- [x] "Implementation History" section is up-to-date for milestone
 - [ ] User-facing documentation has been created in [kubernetes/website], for publication to [kubernetes.io]
 - [ ] Supporting documentation—e.g., additional design documents, links to mailing list discussions/SIG meetings, relevant PRs/issues, release notes
 
@@ -57,7 +57,7 @@ Items marked with (R) are required *prior to targeting to a milestone / release*
 
 ## Summary
 
-This KEP proposes supporting a new flag `--subresource` to get, apply, patch, edit and replace kubectl
+This KEP proposes supporting a new flag `--subresource` to get, patch, edit and replace kubectl
 commands to fetch and update `status` and `scale` subresources.
 
 ## Motivation
@@ -72,10 +72,10 @@ in a generic fashion.
 ### Goals
 
 - Add a new flag `--subresource=[subresource-name]` to get, patch, edit
-  and replace kubectl commands to allow fetching and updating `status` and `scale` subresources for all resources
-  (built-in and CRs) that support these subresources.
-- Display pretty printed table columns for the status (uses same columns as the main resource) and scale subresources.
-
+and replace kubectl commands to allow fetching and updating `status` and `scale`
+subresources for all resources (built-in and CRs) that support these subresources.
+- Display pretty printed table columns for the status (uses same columns as the main resource)
+and scale subresources.
 
 ### Non-Goals
 
@@ -88,7 +88,7 @@ kubectl commands like get, patch, edit and replace will now contain a
 new flag `--subresource=[subresource-name]` which will allow fetching and updating
 `status` and `scale` subresources for all API resources.
 
-Note that the api contract against the subresource is identical to a full resource. Therefore updating
+Note that the API contract against the subresource is identical to a full resource. Therefore updating
 the status subresource to hold new value which could protentially be reconciled by a controller 
 to a different value is *expected behavior*.
 
@@ -96,8 +96,9 @@ If `--subresource` flag is used for a resource that doesn't support the subresou
 a `NotFound` error will be returned.
 
 ## Notes
-The alpha stage of this KEP does not change any behavior of the `apply` command. The support for `--subresource` in 
-this command will be added later.
+
+The alpha stage of this KEP does not change any behavior of the `apply` command.
+The support for `--subresource` in this command will be added later.
 
 ## Examples
 
@@ -285,7 +286,6 @@ N/A
 
 ###### Were upgrade and rollback tested? Was the upgrade->downgrade->upgrade path tested?
 
-TODO: Describe manual testing that was done and the outcomes.
 This feature is completely with in the client. The upgrades and rollback of cluster will not be affected by this change.  
 The update and downgrade of the kubectl version will only limit the availability of the `--subresource` flag and will not
 change any API behavior.

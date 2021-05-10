@@ -10,10 +10,16 @@ reviewers:
   - "@soltysh"
 approvers:
   - "@soltysh"
+prr-approvers:
+  - "@johnbelamaric"
+
 creation-date: 2021-04-06
 last-updated: 2021-04-06
-status: provisional
-see-also:
-replaces:
-superseded-by:
-  - n/a
+
+status: implementable
+stage: alpha
+
+latest-milestone: "v1.22"
+
+milestone:
+  alpha: "v1.22"
